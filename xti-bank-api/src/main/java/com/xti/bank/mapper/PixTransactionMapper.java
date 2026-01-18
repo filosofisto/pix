@@ -2,6 +2,7 @@ package com.xti.bank.mapper;
 
 import com.xti.bank.controller.PixTransactionRequest;
 import com.xti.bank.domain.PixTransaction;
+import com.xti.bank.event.PixTransactionCreatedEvent;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.MappingConstants.ComponentModel;
@@ -21,4 +22,6 @@ public interface PixTransactionMapper {
 
     // Optional – if you ever need reverse mapping
     PixTransactionRequest toRequest(PixTransaction entity);
+
+    PixTransactionCreatedEvent toEvent(PixTransaction entity);
 }
