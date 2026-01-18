@@ -5,5 +5,9 @@ import java.math.BigDecimal;
 public record AntifraudResponse(
         String decision,
         BigDecimal riskScore
-) {}
+) {
+    public boolean isPositive() {
+        return "POSITIVE".equals(decision);
+    }
+}
 

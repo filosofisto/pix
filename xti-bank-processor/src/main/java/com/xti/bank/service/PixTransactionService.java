@@ -1,113 +1,115 @@
-//package com.xti.bank.service;
-//
-//import com.xti.bank.client.antifraud.AntifraudClient;
-//import com.xti.bank.domain.PixTransaction;
-//import com.xti.bank.domain.PixTransactionStatus;
-//import com.xti.bank.exception.EntityNotFoundException;
-//import com.xti.bank.mapper.PixTransactionMapper;
-//import com.xti.bank.producer.PixTransactionEventProducer;
-//import com.xti.bank.repository.PixTransactionRepository;
-//import lombok.RequiredArgsConstructor;
-//import lombok.extern.slf4j.Slf4j;
-//import org.springframework.stereotype.Service;
-//
-//import java.math.BigDecimal;
-//import java.time.LocalDateTime;
-//import java.util.UUID;
-//
-//@Service
-//@RequiredArgsConstructor
-//@Slf4j
-//public class PixTransactionService {
-//
-//    private final AntifraudClient antifraudClient;
-//
-//    private final PixTransactionRepository repository;
-//
-//    private final PixTransactionEventProducer producer;
-//
-//    private final PixTransactionMapper mapper;
-//
-//    public PixTransaction createTransaction(PixTransaction transaction) {
-//        validate(transaction);
-//        updateDefaultValues(transaction);
-//        var created = storeTransaction(transaction);
-//        publishToTopic(created);
-//
-//        return created;
-//    }
-//
-//    /**
-//     * Produce kafka message
-//     *
-//     * @param transaction
-//     */
+package com.xti.bank.service;
+
+import com.xti.bank.client.antifraud.*;
+import com.xti.bank.domain.AntifraudTransactionResponse;
+import com.xti.bank.event.PixTransactionCreatedEvent;
+import com.xti.bank.repository.AntifraudTransactionResponseRepository;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Service;
+
+import java.time.Instant;
+import java.time.LocalDateTime;
+
+@Service
+@RequiredArgsConstructor
+@Slf4j
+public class PixTransactionService {
+
+    private final AntifraudClient antifraudClient;
+
+    private final AntifraudTransactionResponseRepository repository;
+
+    @Value("${pix.isbp.participant}")
+    private String participantIsbp;
+
+    @Value("${pix.currency}")
+    private String currency;
+
+    @Value("${pix.branch}")
+    private String branch;
+
+    @Value("${pix.channel}")
+    private String channel;
+
+    public void processPixTransactionEvent(PixTransactionCreatedEvent event) {
+        try {
+            var antifraudResponse = callAntifraud(event);
+            var antifraudTransactionResponse = createAntifraudTransactionResponse(event, antifraudResponse);
+
+            repository.save(antifraudTransactionResponse);
+
+            if (antifraudResponse.isPositive()) {
+                // Send PIX request to BACEN
+
+            }
+        } catch (Exception e) {
+            log.error(e.getMessage(), e);
+        }
+    }
+
+    private AntifraudTransactionResponse createAntifraudTransactionResponse(PixTransactionCreatedEvent event,
+                                                                            AntifraudResponse antifraudResponse) {
+        return AntifraudTransactionResponse.builder()
+                .decision(antifraudResponse.decision())
+                .riskScore(antifraudResponse.riskScore())
+                .transactionIdentifier(event.transactionIdentifier())
+                .dateTimeOperation(LocalDateTime.now())
+                .build();
+    }
+
+    private AntifraudResponse callAntifraud(PixTransactionCreatedEvent event) {
+        var antifraudRequest = createAntifraudRequest(event);
+        return antifraudClient.evaluate(antifraudRequest);
+    }
+
+    private AntifraudRequest createAntifraudRequest(PixTransactionCreatedEvent event) {
+        return new AntifraudRequest(
+                event.transactionIdentifier(),
+                Instant.now(),
+                event.amount(),
+                currency,
+                new Payer(
+                        participantIsbp,
+                        getAccountType(event.senderKey()),
+                        branch,
+                        event.senderKey(),
+                        !event.senderKey().contains("@") ? event.senderKey() : null, null, null, null
+                ),
+                new Payee(
+                        participantIsbp,
+                        getAccountType(event.receiverKey()),
+                        event.receiverKey(),
+                        null,
+                        !event.receiverKey().contains("@") ? event.receiverKey() : null, null, null
+                ),
+                event.description(),
+                channel
+        );
+    }
+
+    private String getAccountType(String key) {
+        if (key.contains("@")) {
+            return "EMAIL";
+        }
+        if (key.length() == 11) {
+            return "CPF";
+        }
+        if (key.length() == 13) {
+            return "CNPJ";
+        }
+        return "UNKNOWN";
+    }
+
+    /**
+     * Produce kafka message
+     *
+     * @param transaction
+     */
 //    private void publishToTopic(PixTransaction transaction) {
 //        log.info("Publishing transaction to topic {}", transaction.getId());
 //        producer.publish(mapper.toEvent(transaction));
 //        log.info("Published transaction to topic {}", transaction.getId());
 //    }
-//
-//    /**
-//     * Store transaction into database.
-//     *
-//     * @param transaction
-//     * @return
-//     */
-//    private PixTransaction storeTransaction(PixTransaction transaction) {
-//        log.info("Storing transaction {} to database", transaction.getId());
-//        return repository.save(transaction);
-//    }
-//
-//    /**
-//     * Initialize with default values.
-//     *
-//     * @param transaction
-//     */
-//    private static void updateDefaultValues(PixTransaction transaction) {
-//        log.info("Updating default values for transaction {}", transaction.getId());
-//        transaction.setTransactionIdentifier(UUID.randomUUID().toString());
-//        transaction.setTransactionDate(LocalDateTime.now());
-//        transaction.setStatus(PixTransactionStatus.PENDING);
-//    }
-//
-//    /**
-//     * Basic validation (expand as needed).
-//     *
-//     * @param transaction
-//     */
-//    private static void validate(PixTransaction transaction) {
-//        log.info("Validating transaction {}", transaction);
-//
-//        if (transaction.getAmount().compareTo(BigDecimal.ZERO) <= 0) {
-//            log.error("Amount must be greater than zero");
-//            throw new IllegalArgumentException("Amount must be positive");
-//        }
-//        if (transaction.getSenderKey() == null || transaction.getReceiverKey() == null) {
-//            log.error("Sender and Receiver Keys must not be null");
-//            throw new IllegalArgumentException("Sender and receiver keys are required");
-//        }
-//
-//        log.info("Transaction {} validated with success", transaction);
-//    }
-//
-//    public PixTransaction updateStatus(String transactionId, PixTransactionStatus newStatus) {
-//        PixTransaction tx = repository.findById(transactionId)
-//                .orElseThrow(() -> new EntityNotFoundException("Transaction not found"));
-//
-//        if (!tx.getStatus().canTransitionTo(newStatus)) {
-//            throw new IllegalStateException(
-//                    String.format("Cannot transition from %s to %s",
-//                            tx.getStatus(), newStatus));
-//        }
-//
-//        // Optional: additional business rules
-//        if (newStatus == PixTransactionStatus.COMPLETED) {
-//            // Here you would normally call real PIX confirmation / callback handling
-//        }
-//
-//        tx.setStatus(newStatus);
-//
-//        return storeTransaction(tx);
-//    }
-//}
+}
