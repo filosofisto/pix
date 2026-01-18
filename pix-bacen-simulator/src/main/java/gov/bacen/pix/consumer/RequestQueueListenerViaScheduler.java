@@ -3,6 +3,9 @@ package gov.bacen.pix.consumer;
 import com.ibm.mq.jms.MQConnectionFactory;
 import com.ibm.msg.client.wmq.WMQConstants;
 import gov.bacen.pix.config.IbmMqProperties;
+import gov.bacen.pix.exception.SystemException;
+import gov.bacen.pix.service.PixService;
+import gov.bacen.pix.util.XmlUtil;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
 import lombok.RequiredArgsConstructor;
@@ -24,6 +27,8 @@ import javax.jms.TextMessage;
 public class RequestQueueListenerViaScheduler {
 
     private final IbmMqProperties props;
+
+    private final PixService pixService;
 
     private Connection connection;
     private Session session;
@@ -50,7 +55,6 @@ public class RequestQueueListenerViaScheduler {
                 throw new IllegalStateException("Request queue name is null or empty!");
             }
 
-            // Use queue:/// syntax to avoid JMS XMSC_DESTINATION_NAME errors
             Queue queue = session.createQueue("queue:///" + queueName);
             consumer = session.createConsumer(queue);
 
@@ -76,7 +80,7 @@ public class RequestQueueListenerViaScheduler {
                 if (msg instanceof TextMessage textMessage) {
                     String body = textMessage.getText();
                     log.info("Received message: {}", body);
-                    // TODO: process PACS.008 XML
+                    processMessage(body);
                 } else {
                     log.warn("Received non-text message: {}", msg);
                 }
@@ -84,6 +88,16 @@ public class RequestQueueListenerViaScheduler {
             }
         } catch (JMSException e) {
             log.error("Error while consuming message from queue", e);
+        }
+    }
+
+    private void processMessage(String body) {
+        try {
+            pixService.processPix(XmlUtil.fromXml(body));
+        } catch (Exception e) {
+            log.error("Error while processing request", e);
+            // TODO: Here should have some special treatment to advise the originator about the issue
+            throw new SystemException(e);
         }
     }
 

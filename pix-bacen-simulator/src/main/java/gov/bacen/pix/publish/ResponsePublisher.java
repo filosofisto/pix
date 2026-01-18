@@ -1,9 +1,6 @@
 package gov.bacen.pix.publish;
 
-import com.ibm.mq.MQMessage;
-import com.ibm.mq.MQPutMessageOptions;
-import com.ibm.mq.MQQueue;
-import com.ibm.mq.MQQueueManager;
+import com.ibm.mq.*;
 import com.ibm.mq.constants.CMQC;
 import gov.bacen.pix.config.IbmMqProperties;
 import gov.bacen.pix.exception.SystemException;
