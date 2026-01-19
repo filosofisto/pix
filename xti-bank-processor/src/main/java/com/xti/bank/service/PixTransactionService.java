@@ -5,9 +5,11 @@ import com.xti.bank.domain.*;
 import com.xti.bank.domain.pac002.Pacs002Document;
 import com.xti.bank.domain.pac008.*;
 import com.xti.bank.event.PixTransactionCreatedEvent;
+import com.xti.bank.event.PixTransactionResponseEvent;
 import com.xti.bank.exception.EntityNotFoundException;
 import com.xti.bank.exception.SystemException;
 import com.xti.bank.publish.MqPublisher;
+import com.xti.bank.publish.PixTransactionResponseEventProducer;
 import com.xti.bank.repository.AntifraudTransactionResponseRepository;
 import com.xti.bank.repository.Pac002DocumentRepository;
 import com.xti.bank.repository.Pac008DocumentRepository;
@@ -30,7 +32,7 @@ import java.util.UUID;
 @Slf4j
 public class PixTransactionService {
 
-    private final AntifraudClient antifraudClient;
+    private final AntifraudService antifraudService;
 
     private final AntifraudTransactionResponseRepository antifraudTransactionResponseRepository;
 
@@ -41,6 +43,8 @@ public class PixTransactionService {
     private final PixTransactionRepository pixTransactionRepository;
 
     private final MqPublisher mqPublisher;
+
+    private final PixTransactionResponseEventProducer pixTransactionResponseEventProducer;
 
     @Value("${pix.isbp.participant}")
     private String participantIsbp;
@@ -64,18 +68,29 @@ public class PixTransactionService {
             var antifraudResponse = verifyTransactionFraud(event);
 
             if (antifraudResponse.isPositive()) {
-                log.info("Antifraud transaction has been successfully processed with POSITIVE result");
-
-                // BACEN PROCESSING
-                sendPixTransactionToBacen(event);
+                processBacenPixTransaction(event);
             } else {
-                log.warn("Antifraud transaction response was NEGATIVE for transaction: {}", event);
-                updatePixTransaction(event.transactionIdentifier(), PixTransactionStatus.FAILED, PixTransactionStatusReason.FAILED_ANTIFRAUD);
+                processNegativeAntifraudeResult(event);
             }
         } catch (Exception e) {
             log.error(e.getMessage(), e);
             throw new SystemException(e);
         }
+    }
+
+    private void processNegativeAntifraudeResult(PixTransactionCreatedEvent event) {
+        log.warn("Antifraud transaction response was NEGATIVE for transaction: {}", event);
+        var pixTransaction = updatePixTransaction(event.transactionIdentifier(),
+                PixTransactionStatus.FAILED,
+                PixTransactionStatusReason.FAILED_ANTIFRAUD);
+        publishPixTransactionResponse(pixTransaction);
+    }
+
+    private void processBacenPixTransaction(PixTransactionCreatedEvent event) throws Exception {
+        log.info("Antifraud transaction has been successfully processed with POSITIVE result");
+
+        // BACEN PROCESSING
+        sendPixTransactionToBacen(event);
     }
 
     @Transactional
@@ -89,17 +104,30 @@ public class PixTransactionService {
                 .pacs002Document(pacs002Document)
                 .build());
 
-        updatePixTransaction(transactionIdentifier, PixTransactionStatus.COMPLETED, null);
+        log.info("Updating transaction {}", transactionIdentifier);
+        var pixTransaction = updatePixTransaction(transactionIdentifier, PixTransactionStatus.COMPLETED, null);
+
+        log.info("Publishing response event for transaction {}", transactionIdentifier);
+        publishPixTransactionResponse(pixTransaction);
     }
 
-    private void updatePixTransaction(String transactionIdentifier, PixTransactionStatus status, PixTransactionStatusReason statusReason) {
+    private void publishPixTransactionResponse(PixTransaction pixTransaction) {
+        pixTransactionResponseEventProducer.publish(new PixTransactionResponseEvent(
+                pixTransaction.getTransactionIdentifier(),
+                pixTransaction.getStatus(),
+                pixTransaction.getStatusReason(),
+                LocalDateTime.now())
+        );
+    }
+
+    private PixTransaction updatePixTransaction(String transactionIdentifier, PixTransactionStatus status, PixTransactionStatusReason statusReason) {
         log.info("Update transaction result");
         var pixTransaction = pixTransactionRepository.findByTransactionIdentifier(transactionIdentifier)
                 .orElseThrow(() -> new EntityNotFoundException(transactionIdentifier));
         pixTransaction.setStatus(status);
         pixTransaction.setStatusReason(statusReason);
 
-        pixTransactionRepository.save(pixTransaction);
+        return pixTransactionRepository.save(pixTransaction);
     }
 
     private @NonNull AntifraudResponse verifyTransactionFraud(PixTransactionCreatedEvent event) {
@@ -170,7 +198,7 @@ public class PixTransactionService {
         log.info("Calling external Antifraud System...");
 
         var antifraudRequest = createAntifraudRequest(event);
-        var response = antifraudClient.evaluate(antifraudRequest);
+        var response = antifraudService.evaluate(antifraudRequest);
 
         log.info("Antifraud response: {}", response);
 

@@ -1,4 +1,5 @@
 package com.xti.bank.publish;
+
 import com.ibm.mq.MQMessage;
 import com.ibm.mq.MQPutMessageOptions;
 import com.ibm.mq.MQQueue;

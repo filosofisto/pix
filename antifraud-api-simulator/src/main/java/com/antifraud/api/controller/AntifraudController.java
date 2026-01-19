@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.Random;
 
 @RestController
 @RequestMapping("/api/antifraud")
@@ -20,7 +21,7 @@ public class AntifraudController {
     public ResponseEntity<AntifraudResponse> evaluateTransaction(
             @Valid @RequestBody AntifraudRequest request) {
         return ResponseEntity.ok(new AntifraudResponse(
-                request.transactionId(), Result.getInstance().getResult(), 1, List.of(), Instant.now())
+                request.transactionId(), Result.getInstance().getResult(), riskScoreCalculate(), List.of(), Instant.now())
         );
     }
 
@@ -34,5 +35,15 @@ public class AntifraudController {
     public ResponseEntity<AntifraudResponse> setupNegative() {
         Result.getInstance().setResult("NEGATIVE");
         return ResponseEntity.ok().build();
+    }
+
+    private int riskScoreCalculate() {
+        Random  random = new Random();
+
+        if ("NEGATIVE".equals(Result.getInstance().getResult())) {
+            return random.nextInt(90, 100);
+        }
+
+        return random.nextInt(1, 30);
     }
 }

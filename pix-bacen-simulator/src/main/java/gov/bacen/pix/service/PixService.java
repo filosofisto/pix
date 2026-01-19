@@ -56,7 +56,7 @@ public class PixService {
                                 pacs008Document.getFiToFiCustomerCreditTransfer().getGroupHeader().getSettlementInformation()
                         ),
                         new OriginalGroupInformationAndStatus(
-                                pacs008Document.getFiToFiCustomerCreditTransfer().getGroupHeader().getMessageId(),
+                                pacs008Document.getFiToFiCustomerCreditTransfer().getCreditTransferTransaction().getPaymentIdentification().getTransactionId(),
                                 pacs008Document.getFiToFiCustomerCreditTransfer().getGroupHeader().getMessageId(),
                                 calculateGroupStatus(pacs008Document)
                         ),
