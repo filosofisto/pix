@@ -3,7 +3,6 @@ package com.xti.bank.service;
 import com.xti.bank.client.antifraud.AntifraudClient;
 import com.xti.bank.domain.PixTransaction;
 import com.xti.bank.domain.PixTransactionStatus;
-import com.xti.bank.exception.EntityNotFoundException;
 import com.xti.bank.mapper.PixTransactionMapper;
 import com.xti.bank.producer.PixTransactionEventProducer;
 import com.xti.bank.repository.PixTransactionRepository;
@@ -89,25 +88,5 @@ public class PixTransactionService {
         }
 
         log.info("Transaction {} validated with success", transaction);
-    }
-
-    public PixTransaction updateStatus(String transactionId, PixTransactionStatus newStatus) {
-        PixTransaction tx = repository.findById(transactionId)
-                .orElseThrow(() -> new EntityNotFoundException("Transaction not found"));
-
-        if (!tx.getStatus().canTransitionTo(newStatus)) {
-            throw new IllegalStateException(
-                    String.format("Cannot transition from %s to %s",
-                            tx.getStatus(), newStatus));
-        }
-
-        // Optional: additional business rules
-        if (newStatus == PixTransactionStatus.COMPLETED) {
-            // Here you would normally call real PIX confirmation / callback handling
-        }
-
-        tx.setStatus(newStatus);
-
-        return storeTransaction(tx);
     }
 }
