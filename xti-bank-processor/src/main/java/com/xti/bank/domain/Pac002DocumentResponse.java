@@ -1,18 +1,18 @@
 package com.xti.bank.domain;
 
-import com.xti.bank.domain.pac008.Pac008Document;
+import com.xti.bank.domain.pac002.Pacs002Document;
 import lombok.Builder;
 import lombok.Data;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 @Data
-@Document(collection = "pac008_document_request")
+@Document(collection = "pac002_document_response")
 @Builder
-public class Pac008DocumentRequest {
+public class Pac002DocumentResponse {
 
     @Id
     private String id;
 
-    Pac008Document pac008Document;
+    private Pacs002Document pacs002Document;
 }

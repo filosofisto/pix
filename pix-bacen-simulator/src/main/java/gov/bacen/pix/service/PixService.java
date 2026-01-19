@@ -2,7 +2,7 @@ package gov.bacen.pix.service;
 
 import gov.bacen.pix.domain.pac002.*;
 import gov.bacen.pix.domain.pac008.GroupHeader;
-import gov.bacen.pix.domain.pac008.Pac008Document;
+import gov.bacen.pix.domain.pac008.Pacs008Document;
 import gov.bacen.pix.publish.ResponsePublisher;
 import gov.bacen.pix.util.XmlUtil;
 import lombok.RequiredArgsConstructor;
@@ -23,13 +23,13 @@ public class PixService {
     @Value("${ibm.mq.responseQueueName}")
     private String responseQueueName;
 
-    public void processPix(Pac008Document pac008Document) {
+    public void processPix(Pacs008Document pacs008Document) {
         log.info("Processing Pix...");
 
         // Bacen logic whatever it is
 
         // Prepare answer -> PAC.002
-        var responseDocument = preparePac002Document(pac008Document);
+        var responseDocument = preparePac002Document(pacs008Document);
 
         // Send the answer
         sendAnswer(responseDocument);
@@ -46,35 +46,35 @@ public class PixService {
         }
     }
 
-    private Pacs002Document preparePac002Document(Pac008Document pac008Document) {
+    private Pacs002Document preparePac002Document(Pacs008Document pacs008Document) {
         return new Pacs002Document(
                 new FIToFIPaymentStatusReport(
                         new GroupHeader(
                                 UUID.randomUUID().toString(),
                                 OffsetDateTime.now(),
-                                pac008Document.getFiToFiCustomerCreditTransfer().getGroupHeader().getNumberOfTransactions(),
-                                pac008Document.getFiToFiCustomerCreditTransfer().getGroupHeader().getSettlementInformation()
+                                pacs008Document.getFiToFiCustomerCreditTransfer().getGroupHeader().getNumberOfTransactions(),
+                                pacs008Document.getFiToFiCustomerCreditTransfer().getGroupHeader().getSettlementInformation()
                         ),
                         new OriginalGroupInformationAndStatus(
-                                pac008Document.getFiToFiCustomerCreditTransfer().getGroupHeader().getMessageId(),
-                                pac008Document.getFiToFiCustomerCreditTransfer().getGroupHeader().getMessageId(),
-                                calculateGroupStatus(pac008Document)
+                                pacs008Document.getFiToFiCustomerCreditTransfer().getGroupHeader().getMessageId(),
+                                pacs008Document.getFiToFiCustomerCreditTransfer().getGroupHeader().getMessageId(),
+                                calculateGroupStatus(pacs008Document)
                         ),
                         new TransactionInformationAndStatus(
                                 UUID.randomUUID().toString(),
                                 UUID.randomUUID().toString(),
-                                calculateTransactionStatus(pac008Document)
+                                calculateTransactionStatus(pacs008Document)
                         )
                 )
         );
     }
 
-    private GroupStatus calculateGroupStatus(Pac008Document pac008Document) {
+    private GroupStatus calculateGroupStatus(Pacs008Document pacs008Document) {
         // Whatever Bacen does to aprove or not, no clue
         return GroupStatus.ACCP;
     }
 
-    private TransactionStatus calculateTransactionStatus(Pac008Document pac008Document) {
+    private TransactionStatus calculateTransactionStatus(Pacs008Document pacs008Document) {
         // Whatever Bacen does to aprove or not, no clue
         return TransactionStatus.ACSC;
     }

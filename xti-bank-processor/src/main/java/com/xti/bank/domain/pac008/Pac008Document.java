@@ -13,7 +13,7 @@ import lombok.NoArgsConstructor;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class Document {
+public class Pac008Document {
 
         @XmlElement(name = "FIToFICstmrCdtTrf", required = true)
         private FIToFICustomerCreditTransfer fiToFiCustomerCreditTransfer;

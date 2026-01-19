@@ -1,14 +1,5 @@
 package gov.bacen.pix.consumer;
 
-import gov.bacen.pix.domain.pac008.Pac008Document;
-import gov.bacen.pix.exception.SystemException;
-import gov.bacen.pix.service.PixService;
-import gov.bacen.pix.util.XmlUtil;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.jms.annotation.JmsListener;
-import org.springframework.stereotype.Component;
-
 /**
  * TODO: there is a conflict between javax.jms and jakarta.jms on Spring 4, a trick problem so this class aren't functional now
  */

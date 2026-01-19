@@ -1,7 +1,7 @@
 package gov.bacen.pix.util;
 
 import gov.bacen.pix.domain.pac002.Pacs002Document;
-import gov.bacen.pix.domain.pac008.Pac008Document;
+import gov.bacen.pix.domain.pac008.Pacs008Document;
 import jakarta.xml.bind.JAXBContext;
 import jakarta.xml.bind.Marshaller;
 import jakarta.xml.bind.Unmarshaller;
@@ -21,12 +21,12 @@ public class XmlUtil {
         return sw.toString();
     }
 
-    public static Pac008Document fromXml(String xml) throws Exception {
-        JAXBContext context = JAXBContext.newInstance(Pac008Document.class);
+    public static Pacs008Document fromXml(String xml) throws Exception {
+        JAXBContext context = JAXBContext.newInstance(Pacs008Document.class);
         Unmarshaller unmarshaller = context.createUnmarshaller();
 
         try (StringReader reader = new StringReader(xml)) {
-            return (Pac008Document) unmarshaller.unmarshal(reader);
+            return (Pacs008Document) unmarshaller.unmarshal(reader);
         }
     }
 
