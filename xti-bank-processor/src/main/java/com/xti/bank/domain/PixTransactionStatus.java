@@ -15,6 +15,11 @@ public enum PixTransactionStatus {
     PENDING("Pending"),
 
     /**
+     * Indicates the transaction will be processed by BACEN
+     */
+    PROCESSING("Processing"),
+
+    /**
      * Transaction was successfully sent and accepted by the Central Bank SPI.
      */
     PROCESSED("Processed"),

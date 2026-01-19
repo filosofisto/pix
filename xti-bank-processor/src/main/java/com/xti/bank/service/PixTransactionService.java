@@ -64,10 +64,9 @@ public class PixTransactionService {
     @Transactional
     public void processPixTransactionEvent(PixTransactionCreatedEvent event) {
         try {
-            // ANTIFRAUDE PROCESSING
             var antifraudResponse = verifyTransactionFraud(event);
 
-            if (antifraudResponse.isPositive()) {
+            if (antifraudResponse != null && antifraudResponse.isPositive()) {
                 processBacenPixTransaction(event);
             } else {
                 processNegativeAntifraudeResult(event);
@@ -76,6 +75,28 @@ public class PixTransactionService {
             log.error(e.getMessage(), e);
             throw new SystemException(e);
         }
+    }
+
+    /**
+     * Verify is the transaction is already canceled or will be mark as timeout soon (and CANCELLED).
+     *
+     * @param transactionIdentifier
+     * @return
+     */
+    private boolean isTransactionTimedoutOrCancelled(String transactionIdentifier) {
+        log.info("Checking transaction timed out...");
+
+        var transaction = pixTransactionRepository.findByTransactionIdentifier(transactionIdentifier)
+                .orElseThrow(() -> new EntityNotFoundException(transactionIdentifier));
+
+        if (transaction.getStatus().equals(PixTransactionStatus.CANCELLED)) {
+            return true;
+        }
+        if (transaction.getTransactionDate().isBefore(LocalDateTime.now().minusSeconds(30))) {
+            return true;
+        }
+
+        return false;
     }
 
     private void processNegativeAntifraudeResult(PixTransactionCreatedEvent event) {
@@ -88,6 +109,14 @@ public class PixTransactionService {
 
     private void processBacenPixTransaction(PixTransactionCreatedEvent event) throws Exception {
         log.info("Antifraud transaction has been successfully processed with POSITIVE result");
+
+        if (isTransactionTimedoutOrCancelled(event.transactionIdentifier())) {
+            log.warn("Transaction timed out or cancelled");
+            return;
+        }
+
+        // PROCESSED indicates that the PIX will be sent to BACEN
+        updatePixTransaction(event.transactionIdentifier(), PixTransactionStatus.PROCESSING, null);
 
         // BACEN PROCESSING
         sendPixTransactionToBacen(event);
@@ -130,7 +159,12 @@ public class PixTransactionService {
         return pixTransactionRepository.save(pixTransaction);
     }
 
-    private @NonNull AntifraudResponse verifyTransactionFraud(PixTransactionCreatedEvent event) {
+    private AntifraudResponse verifyTransactionFraud(PixTransactionCreatedEvent event) {
+        if (isTransactionTimedoutOrCancelled(event.transactionIdentifier())) {
+            log.warn("Transaction timed out or cancelled");
+            return null;
+        }
+
         log.info("Checking if transaction is possibly a fraud...");
         var antifraudResponse = callAntifraudSystem(event);
         var antifraudTransactionResponse = createAntifraudTransactionResponse(event, antifraudResponse);

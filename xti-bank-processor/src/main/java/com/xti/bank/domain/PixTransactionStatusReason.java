@@ -10,5 +10,6 @@ import java.util.Set;
 public enum PixTransactionStatusReason {
 
     FAILED_ANTIFRAUD,
-    FAILED_BACEN
+    FAILED_BACEN,
+    FAILED_TIMEOUT
 }
