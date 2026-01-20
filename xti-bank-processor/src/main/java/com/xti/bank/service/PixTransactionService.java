@@ -143,8 +143,8 @@ public class PixTransactionService {
     private void publishPixTransactionResponse(PixTransaction pixTransaction) {
         pixTransactionResponseEventProducer.publish(new PixTransactionResponseEvent(
                 pixTransaction.getTransactionIdentifier(),
-                pixTransaction.getStatus(),
-                pixTransaction.getStatusReason(),
+                pixTransaction.getStatus().name(),
+                pixTransaction.getStatusReason() != null ? pixTransaction.getStatusReason().name() : null,
                 LocalDateTime.now())
         );
     }

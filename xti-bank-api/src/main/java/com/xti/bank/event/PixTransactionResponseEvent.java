@@ -8,8 +8,8 @@ import java.time.LocalDateTime;
 
 public record PixTransactionResponseEvent(
         String transactionIdentifier,
-        PixTransactionStatus transactionStatus,
-        PixTransactionStatusReason transactionStatusReason,
+        String transactionStatus,
+        String transactionStatusReason,
         @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss")
         LocalDateTime responseDateTime
 ) {}

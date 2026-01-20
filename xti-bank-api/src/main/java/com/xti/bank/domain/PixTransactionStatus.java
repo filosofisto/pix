@@ -3,7 +3,9 @@ package com.xti.bank.domain;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.xti.bank.util.PixTransactionStatusDeserializer;
+import lombok.Getter;
 
+@Getter
 @JsonDeserialize(using = PixTransactionStatusDeserializer.class)
 @JsonFormat(shape = JsonFormat.Shape.OBJECT)
 public enum PixTransactionStatus {
@@ -21,10 +23,6 @@ public enum PixTransactionStatus {
 
     PixTransactionStatus(String displayName) {
         this.displayName = displayName;
-    }
-
-    public String getDisplayName() {
-        return displayName;
     }
 
 }
