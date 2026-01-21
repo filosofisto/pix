@@ -40,7 +40,7 @@ Segue abaixo uma visão geral sobre a arquitetura da aplicação:
 - Cria mensagem padrão PACS008;
 - Publica a requisição PACS008 no MQ na fila REQUEST.Q no Bacen (Simulado);
 - Consome respostas do Bacen (Simulado) no padrão PACS002;
-- Registras respostas do Bacen (PACS002) no banco de dados;
+- Registra respostas do Bacen (PACS002) no banco de dados;
 - Atualiza transação (Status e StatusReason);
 - Publica resposta para o originador da requisição (xti-bank-api) no Kafka tópico de resposta.
 
