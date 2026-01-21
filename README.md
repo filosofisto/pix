@@ -143,7 +143,6 @@ Manter a aplicação funcionando e saudável requer constante monitoramento da m
 - Docker;
 - Docker Composer;
 - ReactJS;
-- Vue.
 
 
 
